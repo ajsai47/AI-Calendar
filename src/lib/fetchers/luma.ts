@@ -173,8 +173,70 @@ async function fetchAllDiscoverEntries(): Promise<
 }
 
 /**
- * Fetch events from Luma discover pages (Portland place, AI category, genai-collective calendar).
+ * Check if an event is in the Portland metro area (within ~50 miles).
+ * Portland center: 45.5152, -122.6784
+ */
+function isPortlandArea(entry: LumaDiscoverEntry): boolean {
+  const { coordinate, geo_address_info, geo_address_json } = entry.event;
+
+  // Check city name first
+  const city = (
+    geo_address_info?.city ??
+    geo_address_json?.city ??
+    geo_address_info?.city_state ??
+    ""
+  ).toLowerCase();
+
+  if (
+    city.includes("portland") ||
+    city.includes("beaverton") ||
+    city.includes("hillsboro") ||
+    city.includes("lake oswego") ||
+    city.includes("tigard") ||
+    city.includes("vancouver") ||
+    city.includes("gresham") ||
+    city.includes("oregon city")
+  ) {
+    return true;
+  }
+
+  // Check address text for Oregon/Portland references
+  const address = (
+    geo_address_info?.full_address ??
+    geo_address_info?.address ??
+    geo_address_json?.description ??
+    ""
+  ).toLowerCase();
+
+  if (address.includes("portland") || address.includes(", or ")) {
+    return true;
+  }
+
+  // Geo-fence: ~50 mile radius from Portland center
+  if (coordinate?.latitude && coordinate?.longitude) {
+    const lat = coordinate.latitude;
+    const lng = coordinate.longitude;
+    const PDX_LAT = 45.5152;
+    const PDX_LNG = -122.6784;
+    const dlat = lat - PDX_LAT;
+    const dlng = lng - PDX_LNG;
+    const distSq = dlat * dlat + dlng * dlng;
+    // ~0.72 degrees ≈ 50 miles at Portland's latitude
+    return distSq < 0.72 * 0.72;
+  }
+
+  // Online events with no location — include them
+  if (entry.event.location_type === "online") {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Fetch events from Luma discover pages (Portland place + AI category).
  * No authentication required -- these are public APIs.
+ * Filters to Portland metro area only.
  */
 export async function fetchLumaEvents(): Promise<EventInsert[]> {
   const tagged = await fetchAllDiscoverEntries();
@@ -183,11 +245,18 @@ export async function fetchLumaEvents(): Promise<EventInsert[]> {
   );
 
   const results: EventInsert[] = [];
+  let geoFiltered = 0;
 
   for (const { entry, communitySlug } of tagged) {
     try {
       const event = entry.event;
       if (!event.name) continue;
+
+      // Filter to Portland area only
+      if (!isPortlandArea(entry)) {
+        geoFiltered++;
+        continue;
+      }
 
       const eventUrl = event.url
         ? event.url.startsWith("http")
@@ -237,6 +306,12 @@ export async function fetchLumaEvents(): Promise<EventInsert[]> {
         error,
       );
     }
+  }
+
+  if (geoFiltered > 0) {
+    console.log(
+      `[Ingest] Luma: filtered out ${geoFiltered} non-Portland events`,
+    );
   }
 
   return results;
