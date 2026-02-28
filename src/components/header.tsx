@@ -5,6 +5,7 @@ import {
   ScrollVelocityRow,
 } from "@/components/ui/scroll-based-velocity";
 import { EventSearchDialog } from "@/components/command-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { Event } from "@/server/db/schema/events";
 
 interface HeaderProps {
@@ -31,7 +32,10 @@ export function Header({ communityCount, communityNames, events }: HeaderProps) 
               )}
             </div>
           </div>
-          <EventSearchDialog events={events} />
+          <div className="flex items-center gap-2">
+            <EventSearchDialog events={events} />
+            <ThemeToggle />
+          </div>
         </div>
       </div>
       {communityNames.length > 0 && (
