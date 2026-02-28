@@ -31,6 +31,7 @@ export default async function HomePage() {
       <Header
         communityCount={allCommunities.length}
         communityNames={communityNames}
+        events={approvedEvents}
       />
       <div className="container max-w-5xl py-8">
         <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">

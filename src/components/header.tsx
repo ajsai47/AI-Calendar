@@ -4,26 +4,34 @@ import { Badge } from "@/components/ui/badge";
 import {
   ScrollVelocityRow,
 } from "@/components/ui/scroll-based-velocity";
+import { EventSearchDialog } from "@/components/command-dialog";
+import type { Event } from "@/server/db/schema/events";
 
 interface HeaderProps {
   communityCount: number;
   communityNames: string[];
+  events: Event[];
 }
 
-export function Header({ communityCount, communityNames }: HeaderProps) {
+export function Header({ communityCount, communityNames, events }: HeaderProps) {
   return (
     <header className="border-b">
       <div className="container max-w-5xl py-8">
-        <h1 className="text-2xl font-bold tracking-tight">AI Calendar</h1>
-        <div className="mt-1 flex items-center gap-3">
-          <p className="text-muted-foreground">
-            Portland AI Community Events
-          </p>
-          {communityCount > 0 && (
-            <Badge variant="secondary" className="font-normal">
-              {communityCount} {communityCount === 1 ? "community" : "communities"}
-            </Badge>
-          )}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">AI Calendar</h1>
+            <div className="mt-1 flex items-center gap-3">
+              <p className="text-muted-foreground">
+                Portland AI Community Events
+              </p>
+              {communityCount > 0 && (
+                <Badge variant="secondary" className="font-normal">
+                  {communityCount} {communityCount === 1 ? "community" : "communities"}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <EventSearchDialog events={events} />
         </div>
       </div>
       {communityNames.length > 0 && (
