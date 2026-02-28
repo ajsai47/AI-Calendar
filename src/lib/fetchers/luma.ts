@@ -12,7 +12,7 @@ const DISCOVER_SOURCES: Array<
 > = [
   { type: "place", slug: "portland" },
   { type: "category", slug: "ai" },
-  { type: "calendar", slug: "genai-collective", communitySlug: "aic-portland" },
+  // AIC Portland events now come from the AIC platform API (aic.ts fetcher)
 ];
 
 const FORMAT_MAP: Record<string, EventInsert["format"]> = {

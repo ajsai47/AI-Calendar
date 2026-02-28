@@ -5,7 +5,6 @@ import {
   isToday,
   isTomorrow,
   isThisWeek,
-  startOfDay,
   compareAsc,
 } from "date-fns";
 import { Search, X } from "lucide-react";
@@ -82,7 +81,6 @@ export function EventList({ events, communities }: EventListProps) {
   const filteredEvents = useMemo(() => {
     let result = events;
 
-    // Search filter
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -93,21 +91,18 @@ export function EventList({ events, communities }: EventListProps) {
       );
     }
 
-    // Community filter
     if (selectedCommunities.size > 0) {
       result = result.filter(
         (e) => e.communitySlug && selectedCommunities.has(e.communitySlug),
       );
     }
 
-    // Format filter
     if (selectedFormats.size > 0) {
       result = result.filter(
         (e) => e.format && selectedFormats.has(e.format),
       );
     }
 
-    // Sort by start time
     return result.sort((a, b) =>
       compareAsc(new Date(a.startAt), new Date(b.startAt)),
     );
@@ -154,11 +149,11 @@ export function EventList({ events, communities }: EventListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:gap-12">
-      {/* Sidebar filters */}
-      <aside className="w-full shrink-0 lg:w-56">
+    <div className="flex flex-col gap-6">
+      {/* Filters bar */}
+      <div className="space-y-3">
         {/* Search */}
-        <div className="relative">
+        <div className="relative max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search events..."
@@ -168,111 +163,97 @@ export function EventList({ events, communities }: EventListProps) {
           />
         </div>
 
-        {/* Community filters */}
-        {communities.length > 0 && (
-          <div className="mt-6">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Communities
-            </h3>
-            <div className="flex flex-row flex-wrap gap-1.5 lg:flex-col lg:gap-0">
-              {communities.map((c) => (
-                <button
-                  key={c.slug}
-                  onClick={() => toggleCommunity(c.slug)}
-                  className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent ${
-                    selectedCommunities.has(c.slug)
-                      ? "bg-accent font-medium"
-                      : ""
-                  }`}
-                >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: c.color ?? "#a8a29e" }}
-                  />
-                  <span className="truncate">{c.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Community + Format filter chips */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {communities.map((c) => (
+            <button
+              key={c.slug}
+              onClick={() => toggleCommunity(c.slug)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
+                selectedCommunities.has(c.slug)
+                  ? "border-foreground/30 bg-accent font-medium"
+                  : "border-transparent"
+              }`}
+            >
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ backgroundColor: c.color ?? "#a8a29e" }}
+              />
+              {c.name}
+            </button>
+          ))}
 
-        {/* Format filters */}
-        <div className="mt-6">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Format
-          </h3>
-          <div className="flex flex-row flex-wrap gap-1.5 lg:flex-col lg:gap-0">
-            {FORMAT_OPTIONS.map((f) => (
-              <button
-                key={f}
-                onClick={() => toggleFormat(f)}
-                className={`rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent ${
-                  selectedFormats.has(f) ? "bg-accent font-medium" : ""
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
+          {FORMAT_OPTIONS.map((f) => (
+            <button
+              key={f}
+              onClick={() => toggleFormat(f)}
+              className={`rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
+                selectedFormats.has(f)
+                  ? "border-foreground/30 bg-accent font-medium"
+                  : "border-transparent"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="ml-1 h-7 text-xs text-muted-foreground"
+            >
+              <X className="mr-1 h-3 w-3" />
+              Clear
+            </Button>
+          )}
         </div>
-
-        {/* Clear filters */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="mt-4 w-full justify-start text-muted-foreground"
-          >
-            <X className="mr-1.5 h-3.5 w-3.5" />
-            Clear filters
-          </Button>
-        )}
-      </aside>
+      </div>
 
       {/* Event list */}
-      <main className="min-w-0 flex-1">
-        {groups.length === 0 ? (
-          <div className="py-16 text-center text-muted-foreground">
-            {hasActiveFilters
-              ? "No events match your filters."
-              : "No upcoming events."}
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {groups.map((group) => (
-              <section key={group.label}>
-                <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                  {group.label}
-                </h2>
-                <Separator className="mb-2" />
-                <div className="divide-y">
-                  {group.events.map((event) => (
-                    <EventCard
-                      key={event.platformId}
-                      event={event}
-                      community={
-                        event.communitySlug
-                          ? communityMap.get(event.communitySlug) ?? null
-                          : null
-                      }
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+      {groups.length === 0 ? (
+        <div className="py-16 text-center text-muted-foreground">
+          {hasActiveFilters
+            ? "No events match your filters."
+            : "No upcoming events."}
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {groups.map((group) => (
+            <section key={group.label}>
+              <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                {group.label}
+              </h2>
+              <Separator className="mb-2" />
+              <div className="divide-y">
+                {group.events.map((event) => (
+                  <EventCard
+                    key={event.platformId}
+                    event={event}
+                    community={
+                      event.communitySlug
+                        ? communityMap.get(event.communitySlug) ?? null
+                        : null
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
 
-        {/* Total count */}
-        {filteredEvents.length > 0 && (
-          <p className="mt-8 text-sm text-muted-foreground">
-            {filteredEvents.length}{" "}
-            {filteredEvents.length === 1 ? "event" : "events"}
-            {hasActiveFilters ? " matching filters" : " upcoming"}
-          </p>
-        )}
-      </main>
+      {/* Total count */}
+      {filteredEvents.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          {filteredEvents.length}{" "}
+          {filteredEvents.length === 1 ? "event" : "events"}
+          {hasActiveFilters ? " matching filters" : " upcoming"}
+        </p>
+      )}
     </div>
   );
 }

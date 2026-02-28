@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 
+import { fetchAicPortlandEvents } from "@/lib/fetchers/aic";
 import { fetchLumaEvents } from "@/lib/fetchers/luma";
 import { fetchMeetupEvents } from "@/lib/fetchers/meetup";
 import { db } from "@/server/db";
@@ -26,9 +27,10 @@ export async function ingestExternalEvents(): Promise<IngestionStats> {
   };
 
   // Fetch from all sources in parallel
-  const [lumaResult, meetupResult] = await Promise.allSettled([
+  const [lumaResult, meetupResult, aicResult] = await Promise.allSettled([
     fetchLumaEvents(),
     fetchMeetupEvents(),
+    fetchAicPortlandEvents(),
   ]);
 
   const allEvents: EventInsert[] = [];
@@ -47,6 +49,15 @@ export async function ingestExternalEvents(): Promise<IngestionStats> {
     console.log(`[Ingest] Fetched ${meetupResult.value.length} Meetup events`);
   } else {
     const msg = `Meetup fetch failed: ${meetupResult.reason}`;
+    console.error(`[Ingest] ${msg}`);
+    stats.errors.push(msg);
+  }
+
+  if (aicResult.status === "fulfilled") {
+    allEvents.push(...aicResult.value);
+    console.log(`[Ingest] Fetched ${aicResult.value.length} AIC Portland events`);
+  } else {
+    const msg = `AIC fetch failed: ${aicResult.reason}`;
     console.error(`[Ingest] ${msg}`);
     stats.errors.push(msg);
   }
