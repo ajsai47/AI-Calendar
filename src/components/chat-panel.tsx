@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,36 +23,109 @@ export function ChatPanel() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const sendMessage = useCallback(
+    async (userContent: string) => {
+      if (isLoading) return;
+
+      const userMsg: ChatMessage = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: userContent,
+      };
+
+      const updatedMessages = [...messages, userMsg];
+      setMessages(updatedMessages);
+      setInput("");
+      setIsLoading(true);
+
+      const assistantId = `assistant-${Date.now()}`;
+      // Add empty assistant message that we'll stream into
+      setMessages((prev) => [
+        ...prev,
+        { id: assistantId, role: "assistant", content: "" },
+      ]);
+
+      try {
+        // Send only user/assistant messages (skip welcome for API)
+        const apiMessages = updatedMessages
+          .filter((m) => m.id !== "welcome")
+          .map((m) => ({ role: m.role, content: m.content }));
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: apiMessages }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`API returned ${res.status}`);
+        }
+
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("No response stream");
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.text) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? { ...m, content: m.content + parsed.text }
+                        : m,
+                    ),
+                  );
+                }
+              } catch {
+                // skip malformed chunks
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Chat error:", error);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  content:
+                    "Sorry, I couldn't process that request. Try again or browse the calendar directly.",
+                }
+              : m,
+          ),
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [messages, isLoading],
+  );
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
-
-    const userMsg: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: trimmed,
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-
-    // Simulate assistant response (no backend yet)
-    setIsLoading(true);
-    setTimeout(() => {
-      const assistantMsg: ChatMessage = {
-        id: `assistant-${Date.now()}`,
-        role: "assistant",
-        content: getPlaceholderResponse(trimmed),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
-      setIsLoading(false);
-    }, 800);
+    sendMessage(trimmed);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -96,17 +169,18 @@ export function ChatPanel() {
             </div>
           ))}
 
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl bg-muted px-3.5 py-2.5">
-                <div className="flex gap-1.5">
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:0ms]" />
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:150ms]" />
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:300ms]" />
+          {isLoading &&
+            messages[messages.length - 1]?.content === "" && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl bg-muted px-3.5 py-2.5">
+                  <div className="flex gap-1.5">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:0ms]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:150ms]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:300ms]" />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -115,7 +189,6 @@ export function ChatPanel() {
       <form onSubmit={handleSubmit} className="border-t p-3">
         <div className="flex items-end gap-2">
           <textarea
-            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -135,21 +208,4 @@ export function ChatPanel() {
       </form>
     </div>
   );
-}
-
-function getPlaceholderResponse(input: string): string {
-  const q = input.toLowerCase();
-  if (q.includes("today") || q.includes("tonight")) {
-    return "Check the calendar in the center — events happening today are shown at the top under the \"Today\" section. You can also use Cmd+K to search!";
-  }
-  if (q.includes("ai") && (q.includes("meetup") || q.includes("event"))) {
-    return "Portland has several AI meetups! AI Portland, AI Tinkerers Portland, and Portland AI Engineers all host regular events. Filter by community using the chips above the event list.";
-  }
-  if (q.includes("hackathon")) {
-    return "Check the calendar for upcoming hackathons — you can filter by the \"Hackathon\" format using the filter chips. PDXHacks typically hosts the biggest ones.";
-  }
-  if (q.includes("this week") || q.includes("weekend")) {
-    return "Scroll through the calendar — events are grouped by Today, Tomorrow, This Week, and Later. The map on the right shows where everything is happening.";
-  }
-  return "I'm a preview of the event assistant — full AI responses coming soon! For now, browse the calendar in the center or use Cmd+K to search events.";
 }
