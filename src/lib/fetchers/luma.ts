@@ -225,11 +225,8 @@ function isPortlandArea(entry: LumaDiscoverEntry): boolean {
     return distSq < 0.72 * 0.72;
   }
 
-  // Online events with no location — include them
-  if (entry.event.location_type === "online") {
-    return true;
-  }
-
+  // No city, no address, no coordinates — exclude unless from Portland place feed
+  // (online events without any geo signal are likely global, not Portland-specific)
   return false;
 }
 

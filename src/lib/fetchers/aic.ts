@@ -37,8 +37,31 @@ const FORMAT_MAP: Record<string, EventInsert["format"]> = {
 };
 
 /**
+ * Check if an AIC event is in the Portland metro area (~50 mile radius).
+ * Portland center: 45.5152, -122.6784
+ */
+function isPortlandArea(ev: AicEvent): boolean {
+  if (ev.geoLatitude && ev.geoLongitude) {
+    const lat = parseFloat(ev.geoLatitude);
+    const lng = parseFloat(ev.geoLongitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const PDX_LAT = 45.5152;
+      const PDX_LNG = -122.6784;
+      const dlat = lat - PDX_LAT;
+      const dlng = lng - PDX_LNG;
+      const distSq = dlat * dlat + dlng * dlng;
+      // ~0.72 degrees ≈ 50 miles at Portland's latitude
+      return distSq < 0.72 * 0.72;
+    }
+  }
+  // No coordinates — can't confirm Portland, exclude
+  return false;
+}
+
+/**
  * Fetch upcoming Portland events from the AI Collective platform public API.
  * Falls back to including past events if no upcoming events exist.
+ * Filters to Portland metro area only using geo coordinates.
  */
 export async function fetchAicPortlandEvents(): Promise<EventInsert[]> {
   // Try upcoming first
@@ -56,7 +79,15 @@ export async function fetchAicPortlandEvents(): Promise<EventInsert[]> {
     );
   }
 
-  return data.events.map(mapToEventInsert);
+  const portlandEvents = data.events.filter(isPortlandArea);
+  const filtered = data.events.length - portlandEvents.length;
+  if (filtered > 0) {
+    console.log(
+      `[Ingest] AIC Portland: filtered out ${filtered} non-Portland events`,
+    );
+  }
+
+  return portlandEvents.map(mapToEventInsert);
 }
 
 async function fetchFromApi(
@@ -95,7 +126,7 @@ function mapToEventInsert(ev: AicEvent): EventInsert {
     endAt: ev.endAt ? new Date(ev.endAt) : null,
     venue: null,
     formattedAddress: null,
-    city: "Portland",
+    city: "Portland", // Only Portland-area events pass the geo-filter
     country: "US",
     latitude: ev.geoLatitude ? parseFloat(ev.geoLatitude) : null,
     longitude: ev.geoLongitude ? parseFloat(ev.geoLongitude) : null,
