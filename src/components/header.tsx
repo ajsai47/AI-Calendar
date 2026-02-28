@@ -17,7 +17,7 @@ interface HeaderProps {
 export function Header({ communityCount, communityNames, events }: HeaderProps) {
   return (
     <header className="border-b">
-      <div className="container max-w-5xl py-8">
+      <div className="shrink-0 px-6 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">AI Calendar</h1>

@@ -4,7 +4,8 @@ import { communities } from "@/server/db/schema/communities";
 import { gte, asc } from "drizzle-orm";
 import { Header } from "@/components/header";
 import { EventList } from "@/components/event-list";
-import { SignupFeed } from "@/components/signup-feed";
+import { ChatPanel } from "@/components/chat-panel";
+import { EventMapWrapper } from "@/components/event-map-wrapper";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300; // revalidate every 5 minutes
@@ -27,21 +28,31 @@ export default async function HomePage() {
   const communityNames = allCommunities.map((c) => c.name);
 
   return (
-    <div className="min-h-screen">
+    <div className="flex h-screen flex-col overflow-hidden">
       <Header
         communityCount={allCommunities.length}
         communityNames={communityNames}
         events={approvedEvents}
       />
-      <div className="container max-w-5xl py-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
-          <div className="min-w-0 flex-1">
+
+      {/* Three-column layout: Chat | Calendar | Map */}
+      <div className="flex min-h-0 flex-1">
+        {/* Left — Chat Panel */}
+        <aside className="hidden w-80 shrink-0 border-r lg:flex lg:flex-col">
+          <ChatPanel />
+        </aside>
+
+        {/* Center — Event Calendar */}
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-3xl px-6 py-6">
             <EventList events={approvedEvents} communities={allCommunities} />
           </div>
-          <aside className="w-full shrink-0 lg:w-72">
-            <SignupFeed />
-          </aside>
-        </div>
+        </main>
+
+        {/* Right — Map View */}
+        <aside className="hidden w-96 shrink-0 border-l lg:block">
+          <EventMapWrapper events={approvedEvents} />
+        </aside>
       </div>
     </div>
   );
