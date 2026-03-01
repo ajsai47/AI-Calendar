@@ -140,7 +140,7 @@ export function AppShell({ events, communities }: AppShellProps) {
         </div>
 
         {/* Bottom tab bar */}
-        <nav className="shrink-0 border-t bg-background">
+        <nav className="shrink-0 border-t bg-background/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
           <div className="flex">
             {([
               { key: "events", label: "Events", icon: CalendarDays },
@@ -150,12 +150,15 @@ export function AppShell({ events, communities }: AppShellProps) {
               <button
                 key={key}
                 onClick={() => setMobileTab(key)}
-                className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-xs transition-colors ${
+                className={`relative flex flex-1 flex-col items-center gap-0.5 pt-2 pb-2.5 text-xs transition-colors ${
                   mobileTab === key
                     ? "text-foreground"
                     : "text-muted-foreground"
                 }`}
               >
+                {mobileTab === key && (
+                  <span className="absolute top-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-foreground" />
+                )}
                 <Icon className={`h-5 w-5 ${mobileTab === key ? "stroke-[2.5]" : ""}`} />
                 <span className={mobileTab === key ? "font-medium" : ""}>{label}</span>
               </button>

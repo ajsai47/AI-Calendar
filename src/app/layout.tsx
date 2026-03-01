@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "AI Calendar — Portland AI Community Events",
   description:
     "All Portland AI community events in one place. Find meetups, hackathons, and workshops from AI Portland, PDXHacks, AI Tinkerers, and more.",
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({

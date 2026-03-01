@@ -262,20 +262,21 @@ export function EventList({ events, communities }: EventListProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search events..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+    <div className="flex flex-col gap-5">
+      {/* Search + Filters */}
+      <div className="flex flex-col gap-2.5">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search events..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
 
-      {/* Filters row */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {/* Filters row */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         <FilterDropdown
           label="Community"
           icon={Users}
@@ -362,6 +363,7 @@ export function EventList({ events, communities }: EventListProps) {
             Clear
           </Button>
         )}
+        </div>
       </div>
 
       {/* Event list */}

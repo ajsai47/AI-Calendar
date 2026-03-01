@@ -17,12 +17,12 @@ interface HeaderProps {
 export function Header({ communityCount, communityNames, events }: HeaderProps) {
   return (
     <header className="border-b">
-      <div className="shrink-0 px-6 py-4">
-        <div className="flex items-start justify-between gap-4">
+      <div className="shrink-0 px-4 py-3 sm:px-6 sm:py-4">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">AI Calendar</h1>
-            <div className="mt-1 flex items-center gap-3">
-              <p className="text-muted-foreground">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">AI Calendar</h1>
+            <div className="mt-0.5 flex items-center gap-2 sm:mt-1 sm:gap-3">
+              <p className="text-sm text-muted-foreground sm:text-base">
                 Portland AI Community Events
               </p>
               {communityCount > 0 && (
