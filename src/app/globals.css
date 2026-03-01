@@ -58,6 +58,15 @@
   }
 }
 
+/* Hide scrollbar for filter row horizontal scroll */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Leaflet dark mode popup overrides */
 .leaflet-dark .leaflet-popup-content-wrapper {
   background-color: hsl(24 9.8% 8%);

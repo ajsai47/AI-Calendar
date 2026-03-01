@@ -263,112 +263,105 @@ export function EventList({ events, communities }: EventListProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Filters */}
-      <div className="space-y-3">
-        {/* Search + filter dropdowns row */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search events..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search events..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
-          {/* Community dropdown */}
-          <FilterDropdown
-            label="Community"
-            icon={Users}
-            selectedCount={selectedCommunities.size}
-          >
-            {communities.map((c) => (
-              <DropdownItem
-                key={c.slug}
-                selected={selectedCommunities.has(c.slug)}
-                onClick={() => toggleSet(setSelectedCommunities, c.slug)}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: c.color ?? "#a8a29e" }}
-                  />
-                  {c.name}
-                </span>
-              </DropdownItem>
-            ))}
-          </FilterDropdown>
-
-          {/* Event Type dropdown */}
-          <FilterDropdown
-            label="Event Type"
-            icon={Tag}
-            selectedCount={selectedFormats.size}
-          >
-            {FORMAT_OPTIONS.map((f) => (
-              <DropdownItem
-                key={f}
-                selected={selectedFormats.has(f)}
-                onClick={() => toggleSet(setSelectedFormats, f)}
-              >
-                {f}
-              </DropdownItem>
-            ))}
-          </FilterDropdown>
-
-          {/* Date dropdown */}
-          <FilterDropdown
-            label={
-              DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label ??
-              "Date"
-            }
-            icon={CalendarDays}
-            selectedCount={dateRange !== "all" ? 1 : 0}
-          >
-            {DATE_RANGE_OPTIONS.map((opt) => (
-              <DropdownItem
-                key={opt.value}
-                selected={dateRange === opt.value}
-                onClick={() => setDateRange(opt.value)}
-              >
-                {opt.label}
-              </DropdownItem>
-            ))}
-          </FilterDropdown>
-
-          {/* City dropdown */}
-          {cityOptions.length > 0 && (
-            <FilterDropdown
-              label="City"
-              icon={MapPin}
-              selectedCount={selectedCities.size}
+      {/* Filters row */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <FilterDropdown
+          label="Community"
+          icon={Users}
+          selectedCount={selectedCommunities.size}
+        >
+          {communities.map((c) => (
+            <DropdownItem
+              key={c.slug}
+              selected={selectedCommunities.has(c.slug)}
+              onClick={() => toggleSet(setSelectedCommunities, c.slug)}
             >
-              {cityOptions.map((city) => (
-                <DropdownItem
-                  key={city}
-                  selected={selectedCities.has(city)}
-                  onClick={() => toggleSet(setSelectedCities, city)}
-                >
-                  {city}
-                </DropdownItem>
-              ))}
-            </FilterDropdown>
-          )}
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: c.color ?? "#a8a29e" }}
+                />
+                {c.name}
+              </span>
+            </DropdownItem>
+          ))}
+        </FilterDropdown>
 
-          {/* Clear all */}
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-8 text-xs text-muted-foreground"
+        <FilterDropdown
+          label="Event Type"
+          icon={Tag}
+          selectedCount={selectedFormats.size}
+        >
+          {FORMAT_OPTIONS.map((f) => (
+            <DropdownItem
+              key={f}
+              selected={selectedFormats.has(f)}
+              onClick={() => toggleSet(setSelectedFormats, f)}
             >
-              <X className="mr-1 h-3 w-3" />
-              Clear
-            </Button>
-          )}
-        </div>
+              {f}
+            </DropdownItem>
+          ))}
+        </FilterDropdown>
+
+        <FilterDropdown
+          label={
+            DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label ??
+            "Date"
+          }
+          icon={CalendarDays}
+          selectedCount={dateRange !== "all" ? 1 : 0}
+        >
+          {DATE_RANGE_OPTIONS.map((opt) => (
+            <DropdownItem
+              key={opt.value}
+              selected={dateRange === opt.value}
+              onClick={() => setDateRange(opt.value)}
+            >
+              {opt.label}
+            </DropdownItem>
+          ))}
+        </FilterDropdown>
+
+        {cityOptions.length > 0 && (
+          <FilterDropdown
+            label="City"
+            icon={MapPin}
+            selectedCount={selectedCities.size}
+          >
+            {cityOptions.map((city) => (
+              <DropdownItem
+                key={city}
+                selected={selectedCities.has(city)}
+                onClick={() => toggleSet(setSelectedCities, city)}
+              >
+                {city}
+              </DropdownItem>
+            ))}
+          </FilterDropdown>
+        )}
+
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-8 shrink-0 text-xs text-muted-foreground"
+          >
+            <X className="mr-1 h-3 w-3" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Event list */}
