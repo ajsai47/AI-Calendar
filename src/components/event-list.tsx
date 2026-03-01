@@ -8,10 +8,24 @@ import {
   isThisMonth,
   compareAsc,
 } from "date-fns";
-import { Search, X } from "lucide-react";
+import {
+  Search,
+  X,
+  ChevronDown,
+  Check,
+  Users,
+  Tag,
+  CalendarDays,
+  MapPin,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { EventCard } from "@/components/event-card";
 import type { Event } from "@/server/db/schema/events";
 import type { Community } from "@/server/db/schema/communities";
@@ -63,14 +77,46 @@ const FORMAT_OPTIONS = [
 ] as const;
 
 const DATE_RANGE_OPTIONS = [
-  { value: "all", label: "All" },
+  { value: "all", label: "All Dates" },
   { value: "this-week", label: "This Week" },
   { value: "this-month", label: "This Month" },
 ] as const;
 
 type DateRange = (typeof DATE_RANGE_OPTIONS)[number]["value"];
 
-function FilterChip({
+function FilterDropdown({
+  label,
+  icon: Icon,
+  selectedCount,
+  children,
+}: {
+  label: string;
+  icon: React.ElementType;
+  selectedCount: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-accent">
+          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+          <span>{label}</span>
+          {selectedCount > 0 && (
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-medium text-background">
+              {selectedCount}
+            </span>
+          )}
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-52 p-1">
+        {children}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function DropdownItem({
   selected,
   onClick,
   children,
@@ -82,13 +128,18 @@ function FilterChip({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
-        selected
-          ? "border-foreground/30 bg-accent font-medium"
-          : "border-transparent"
-      }`}
+      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent"
     >
-      {children}
+      <span
+        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+          selected
+            ? "border-foreground bg-foreground text-background"
+            : "border-muted-foreground/30"
+        }`}
+      >
+        {selected && <Check className="h-3 w-3" />}
+      </span>
+      <span className="truncate">{children}</span>
     </button>
   );
 }
@@ -214,112 +265,110 @@ export function EventList({ events, communities }: EventListProps) {
     <div className="flex flex-col gap-6">
       {/* Filters */}
       <div className="space-y-3">
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search events..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-
-        {/* Filter rows */}
-        <div className="space-y-2">
-          {/* Community */}
-          <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
-              Community
-            </span>
-            <div className="flex flex-wrap items-center gap-1">
-              {communities.map((c) => (
-                <FilterChip
-                  key={c.slug}
-                  selected={selectedCommunities.has(c.slug)}
-                  onClick={() => toggleSet(setSelectedCommunities, c.slug)}
-                >
-                  <span className="inline-flex items-center gap-1.5">
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: c.color ?? "#a8a29e" }}
-                    />
-                    {c.name}
-                  </span>
-                </FilterChip>
-              ))}
-            </div>
+        {/* Search + filter dropdowns row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search events..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
           </div>
 
-          {/* Event Type */}
-          <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
-              Event Type
-            </span>
-            <div className="flex flex-wrap items-center gap-1">
-              {FORMAT_OPTIONS.map((f) => (
-                <FilterChip
-                  key={f}
-                  selected={selectedFormats.has(f)}
-                  onClick={() => toggleSet(setSelectedFormats, f)}
-                >
-                  {f}
-                </FilterChip>
-              ))}
-            </div>
-          </div>
+          {/* Community dropdown */}
+          <FilterDropdown
+            label="Community"
+            icon={Users}
+            selectedCount={selectedCommunities.size}
+          >
+            {communities.map((c) => (
+              <DropdownItem
+                key={c.slug}
+                selected={selectedCommunities.has(c.slug)}
+                onClick={() => toggleSet(setSelectedCommunities, c.slug)}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: c.color ?? "#a8a29e" }}
+                  />
+                  {c.name}
+                </span>
+              </DropdownItem>
+            ))}
+          </FilterDropdown>
 
-          {/* Date */}
-          <div className="flex items-center gap-2">
-            <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
-              Date
-            </span>
-            <div className="flex flex-wrap items-center gap-1">
-              {DATE_RANGE_OPTIONS.map((opt) => (
-                <FilterChip
-                  key={opt.value}
-                  selected={dateRange === opt.value}
-                  onClick={() => setDateRange(opt.value)}
-                >
-                  {opt.label}
-                </FilterChip>
-              ))}
-            </div>
-          </div>
+          {/* Event Type dropdown */}
+          <FilterDropdown
+            label="Event Type"
+            icon={Tag}
+            selectedCount={selectedFormats.size}
+          >
+            {FORMAT_OPTIONS.map((f) => (
+              <DropdownItem
+                key={f}
+                selected={selectedFormats.has(f)}
+                onClick={() => toggleSet(setSelectedFormats, f)}
+              >
+                {f}
+              </DropdownItem>
+            ))}
+          </FilterDropdown>
 
-          {/* City */}
+          {/* Date dropdown */}
+          <FilterDropdown
+            label={
+              DATE_RANGE_OPTIONS.find((o) => o.value === dateRange)?.label ??
+              "Date"
+            }
+            icon={CalendarDays}
+            selectedCount={dateRange !== "all" ? 1 : 0}
+          >
+            {DATE_RANGE_OPTIONS.map((opt) => (
+              <DropdownItem
+                key={opt.value}
+                selected={dateRange === opt.value}
+                onClick={() => setDateRange(opt.value)}
+              >
+                {opt.label}
+              </DropdownItem>
+            ))}
+          </FilterDropdown>
+
+          {/* City dropdown */}
           {cityOptions.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
-                City
-              </span>
-              <div className="flex flex-wrap items-center gap-1">
-                {cityOptions.map((city) => (
-                  <FilterChip
-                    key={city}
-                    selected={selectedCities.has(city)}
-                    onClick={() => toggleSet(setSelectedCities, city)}
-                  >
-                    {city}
-                  </FilterChip>
-                ))}
-              </div>
-            </div>
+            <FilterDropdown
+              label="City"
+              icon={MapPin}
+              selectedCount={selectedCities.size}
+            >
+              {cityOptions.map((city) => (
+                <DropdownItem
+                  key={city}
+                  selected={selectedCities.has(city)}
+                  onClick={() => toggleSet(setSelectedCities, city)}
+                >
+                  {city}
+                </DropdownItem>
+              ))}
+            </FilterDropdown>
+          )}
+
+          {/* Clear all */}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="h-8 text-xs text-muted-foreground"
+            >
+              <X className="mr-1 h-3 w-3" />
+              Clear
+            </Button>
           )}
         </div>
-
-        {/* Clear */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="h-7 text-xs text-muted-foreground"
-          >
-            <X className="mr-1 h-3 w-3" />
-            Clear all filters
-          </Button>
-        )}
       </div>
 
       {/* Event list */}
