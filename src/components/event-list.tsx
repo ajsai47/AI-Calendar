@@ -16,7 +16,6 @@ import {
   Users,
   Tag,
   CalendarDays,
-  MapPin,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -98,7 +97,7 @@ function FilterDropdown({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="inline-flex items-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-accent">
+        <button className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-accent">
           <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           <span>{label}</span>
           {selectedCount > 0 && (
@@ -154,10 +153,6 @@ export function EventList({ events, communities }: EventListProps) {
     new Set(),
   );
   const [dateRange, setDateRange] = useState<DateRange>("all");
-  const [selectedCities, setSelectedCities] = useState<Set<string>>(
-    new Set(),
-  );
-
   useEffect(() => setMounted(true), []);
 
   const communityMap = useMemo(() => {
@@ -167,15 +162,6 @@ export function EventList({ events, communities }: EventListProps) {
     }
     return map;
   }, [communities]);
-
-  // Derive unique cities from events
-  const cityOptions = useMemo(() => {
-    const cities = new Set<string>();
-    for (const e of events) {
-      if (e.city) cities.add(e.city);
-    }
-    return Array.from(cities).sort();
-  }, [events]);
 
   const filteredEvents = useMemo(() => {
     let result = events;
@@ -210,16 +196,10 @@ export function EventList({ events, communities }: EventListProps) {
       result = result.filter((e) => isThisMonth(new Date(e.startAt)));
     }
 
-    if (selectedCities.size > 0) {
-      result = result.filter(
-        (e) => e.city && selectedCities.has(e.city),
-      );
-    }
-
     return result.sort((a, b) =>
       compareAsc(new Date(a.startAt), new Date(b.startAt)),
     );
-  }, [events, search, selectedCommunities, selectedFormats, dateRange, selectedCities]);
+  }, [events, search, selectedCommunities, selectedFormats, dateRange]);
 
   // Defer date grouping to client to avoid hydration mismatch
   // (server runs in UTC, client in local timezone — isToday/isTomorrow differ)
@@ -235,8 +215,7 @@ export function EventList({ events, communities }: EventListProps) {
     search.trim() !== "" ||
     selectedCommunities.size > 0 ||
     selectedFormats.size > 0 ||
-    dateRange !== "all" ||
-    selectedCities.size > 0;
+    dateRange !== "all";
 
   function toggleSet(
     setter: React.Dispatch<React.SetStateAction<Set<string>>>,
@@ -258,7 +237,6 @@ export function EventList({ events, communities }: EventListProps) {
     setSelectedCommunities(new Set());
     setSelectedFormats(new Set());
     setDateRange("all");
-    setSelectedCities(new Set());
   }
 
   return (
@@ -333,24 +311,6 @@ export function EventList({ events, communities }: EventListProps) {
             </DropdownItem>
           ))}
         </FilterDropdown>
-
-        {cityOptions.length > 0 && (
-          <FilterDropdown
-            label="City"
-            icon={MapPin}
-            selectedCount={selectedCities.size}
-          >
-            {cityOptions.map((city) => (
-              <DropdownItem
-                key={city}
-                selected={selectedCities.has(city)}
-                onClick={() => toggleSet(setSelectedCities, city)}
-              >
-                {city}
-              </DropdownItem>
-            ))}
-          </FilterDropdown>
-        )}
 
         {hasActiveFilters && (
           <Button

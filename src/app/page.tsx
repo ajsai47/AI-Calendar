@@ -28,7 +28,6 @@ export default async function HomePage() {
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <Header
-        communityCount={allCommunities.length}
         communityNames={communityNames}
         events={approvedEvents}
       />

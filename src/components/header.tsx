@@ -1,6 +1,5 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import {
   ScrollVelocityRow,
 } from "@/components/ui/scroll-based-velocity";
@@ -9,28 +8,20 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import type { Event } from "@/server/db/schema/events";
 
 interface HeaderProps {
-  communityCount: number;
   communityNames: string[];
   events: Event[];
 }
 
-export function Header({ communityCount, communityNames, events }: HeaderProps) {
+export function Header({ communityNames, events }: HeaderProps) {
   return (
     <header className="border-b">
       <div className="shrink-0 px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight sm:text-2xl">AI Calendar</h1>
-            <div className="mt-0.5 flex items-center gap-2 sm:mt-1 sm:gap-3">
-              <p className="text-sm text-muted-foreground sm:text-base">
-                Portland AI Community Events
-              </p>
-              {communityCount > 0 && (
-                <Badge variant="secondary" className="font-normal">
-                  {communityCount} {communityCount === 1 ? "community" : "communities"}
-                </Badge>
-              )}
-            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground sm:mt-1 sm:text-base">
+              Portland AI Community Events
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <EventSearchDialog events={events} />
