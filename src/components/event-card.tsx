@@ -105,7 +105,7 @@ export function EventCard({ event, community }: EventCardProps) {
         </a>
       </HoverCardTrigger>
 
-      <HoverCardContent side="right" align="start" className="w-80">
+      <HoverCardContent side="bottom" align="start" collisionPadding={16} className="w-80">
         {/* Cover image in hover */}
         {event.imageUrl && (
           <div className="relative -mx-4 -mt-4 mb-3 h-36 overflow-hidden rounded-t-md">

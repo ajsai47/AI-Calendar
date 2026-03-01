@@ -5,9 +5,10 @@ import {
   isToday,
   isTomorrow,
   isThisWeek,
+  isThisMonth,
   compareAsc,
 } from "date-fns";
-import { Search, X } from "lucide-react";
+import { Search, X, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -61,6 +62,14 @@ const FORMAT_OPTIONS = [
   "Social",
 ] as const;
 
+const DATE_RANGE_OPTIONS = [
+  { value: "all", label: "All Dates" },
+  { value: "this-week", label: "This Week" },
+  { value: "this-month", label: "This Month" },
+] as const;
+
+type DateRange = (typeof DATE_RANGE_OPTIONS)[number]["value"];
+
 export function EventList({ events, communities }: EventListProps) {
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
@@ -70,6 +79,7 @@ export function EventList({ events, communities }: EventListProps) {
   const [selectedFormats, setSelectedFormats] = useState<Set<string>>(
     new Set(),
   );
+  const [dateRange, setDateRange] = useState<DateRange>("all");
 
   useEffect(() => setMounted(true), []);
 
@@ -106,10 +116,18 @@ export function EventList({ events, communities }: EventListProps) {
       );
     }
 
+    if (dateRange === "this-week") {
+      result = result.filter((e) =>
+        isThisWeek(new Date(e.startAt), { weekStartsOn: 1 }),
+      );
+    } else if (dateRange === "this-month") {
+      result = result.filter((e) => isThisMonth(new Date(e.startAt)));
+    }
+
     return result.sort((a, b) =>
       compareAsc(new Date(a.startAt), new Date(b.startAt)),
     );
-  }, [events, search, selectedCommunities, selectedFormats]);
+  }, [events, search, selectedCommunities, selectedFormats, dateRange]);
 
   // Defer date grouping to client to avoid hydration mismatch
   // (server runs in UTC, client in local timezone — isToday/isTomorrow differ)
@@ -124,7 +142,8 @@ export function EventList({ events, communities }: EventListProps) {
   const hasActiveFilters =
     search.trim() !== "" ||
     selectedCommunities.size > 0 ||
-    selectedFormats.size > 0;
+    selectedFormats.size > 0 ||
+    dateRange !== "all";
 
   function toggleCommunity(slug: string) {
     setSelectedCommunities((prev) => {
@@ -154,6 +173,7 @@ export function EventList({ events, communities }: EventListProps) {
     setSearch("");
     setSelectedCommunities(new Set());
     setSelectedFormats(new Set());
+    setDateRange("all");
   }
 
   return (
@@ -204,6 +224,25 @@ export function EventList({ events, communities }: EventListProps) {
               }`}
             >
               {f}
+            </button>
+          ))}
+
+          <Separator orientation="vertical" className="mx-1 h-5" />
+
+          {DATE_RANGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setDateRange(opt.value)}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
+                dateRange === opt.value
+                  ? "border-foreground/30 bg-accent font-medium"
+                  : "border-transparent"
+              }`}
+            >
+              {opt.value !== "all" && (
+                <CalendarDays className="h-3 w-3" />
+              )}
+              {opt.label}
             </button>
           ))}
 

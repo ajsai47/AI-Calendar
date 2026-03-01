@@ -19,7 +19,7 @@ const WELCOME_MESSAGE: ChatMessage = {
     "Hey! I'm your Portland AI events assistant. Ask me about upcoming events, find meetups by topic, or get recommendations for this week.",
 };
 
-export function ChatPanel() {
+export function ChatPanel({ hideHeader = false }: { hideHeader?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -139,12 +139,14 @@ export function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Event Assistant</h2>
-        <p className="text-xs text-muted-foreground">
-          Ask about Portland AI events
-        </p>
-      </div>
+      {!hideHeader && (
+        <div className="border-b px-4 py-3">
+          <h2 className="text-sm font-semibold">Event Assistant</h2>
+          <p className="text-xs text-muted-foreground">
+            Ask about Portland AI events
+          </p>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3">
