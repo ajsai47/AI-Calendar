@@ -8,7 +8,7 @@ import {
   isThisMonth,
   compareAsc,
 } from "date-fns";
-import { Search, X, CalendarDays } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -63,12 +63,35 @@ const FORMAT_OPTIONS = [
 ] as const;
 
 const DATE_RANGE_OPTIONS = [
-  { value: "all", label: "All Dates" },
+  { value: "all", label: "All" },
   { value: "this-week", label: "This Week" },
   { value: "this-month", label: "This Month" },
 ] as const;
 
 type DateRange = (typeof DATE_RANGE_OPTIONS)[number]["value"];
+
+function FilterChip({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
+        selected
+          ? "border-foreground/30 bg-accent font-medium"
+          : "border-transparent"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function EventList({ events, communities }: EventListProps) {
   const [mounted, setMounted] = useState(false);
@@ -80,6 +103,9 @@ export function EventList({ events, communities }: EventListProps) {
     new Set(),
   );
   const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [selectedCities, setSelectedCities] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => setMounted(true), []);
 
@@ -90,6 +116,15 @@ export function EventList({ events, communities }: EventListProps) {
     }
     return map;
   }, [communities]);
+
+  // Derive unique cities from events
+  const cityOptions = useMemo(() => {
+    const cities = new Set<string>();
+    for (const e of events) {
+      if (e.city) cities.add(e.city);
+    }
+    return Array.from(cities).sort();
+  }, [events]);
 
   const filteredEvents = useMemo(() => {
     let result = events;
@@ -124,10 +159,16 @@ export function EventList({ events, communities }: EventListProps) {
       result = result.filter((e) => isThisMonth(new Date(e.startAt)));
     }
 
+    if (selectedCities.size > 0) {
+      result = result.filter(
+        (e) => e.city && selectedCities.has(e.city),
+      );
+    }
+
     return result.sort((a, b) =>
       compareAsc(new Date(a.startAt), new Date(b.startAt)),
     );
-  }, [events, search, selectedCommunities, selectedFormats, dateRange]);
+  }, [events, search, selectedCommunities, selectedFormats, dateRange, selectedCities]);
 
   // Defer date grouping to client to avoid hydration mismatch
   // (server runs in UTC, client in local timezone — isToday/isTomorrow differ)
@@ -143,27 +184,19 @@ export function EventList({ events, communities }: EventListProps) {
     search.trim() !== "" ||
     selectedCommunities.size > 0 ||
     selectedFormats.size > 0 ||
-    dateRange !== "all";
+    dateRange !== "all" ||
+    selectedCities.size > 0;
 
-  function toggleCommunity(slug: string) {
-    setSelectedCommunities((prev) => {
+  function toggleSet(
+    setter: React.Dispatch<React.SetStateAction<Set<string>>>,
+    value: string,
+  ) {
+    setter((prev) => {
       const next = new Set(prev);
-      if (next.has(slug)) {
-        next.delete(slug);
+      if (next.has(value)) {
+        next.delete(value);
       } else {
-        next.add(slug);
-      }
-      return next;
-    });
-  }
-
-  function toggleFormat(format: string) {
-    setSelectedFormats((prev) => {
-      const next = new Set(prev);
-      if (next.has(format)) {
-        next.delete(format);
-      } else {
-        next.add(format);
+        next.add(value);
       }
       return next;
     });
@@ -174,11 +207,12 @@ export function EventList({ events, communities }: EventListProps) {
     setSelectedCommunities(new Set());
     setSelectedFormats(new Set());
     setDateRange("all");
+    setSelectedCities(new Set());
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Filters bar */}
+      {/* Filters */}
       <div className="space-y-3">
         {/* Search */}
         <div className="relative max-w-sm">
@@ -191,73 +225,101 @@ export function EventList({ events, communities }: EventListProps) {
           />
         </div>
 
-        {/* Community + Format filter chips */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {communities.map((c) => (
-            <button
-              key={c.slug}
-              onClick={() => toggleCommunity(c.slug)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
-                selectedCommunities.has(c.slug)
-                  ? "border-foreground/30 bg-accent font-medium"
-                  : "border-transparent"
-              }`}
-            >
-              <span
-                className="h-2 w-2 shrink-0 rounded-full"
-                style={{ backgroundColor: c.color ?? "#a8a29e" }}
-              />
-              {c.name}
-            </button>
-          ))}
+        {/* Filter rows */}
+        <div className="space-y-2">
+          {/* Community */}
+          <div className="flex items-center gap-2">
+            <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
+              Community
+            </span>
+            <div className="flex flex-wrap items-center gap-1">
+              {communities.map((c) => (
+                <FilterChip
+                  key={c.slug}
+                  selected={selectedCommunities.has(c.slug)}
+                  onClick={() => toggleSet(setSelectedCommunities, c.slug)}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: c.color ?? "#a8a29e" }}
+                    />
+                    {c.name}
+                  </span>
+                </FilterChip>
+              ))}
+            </div>
+          </div>
 
-          <Separator orientation="vertical" className="mx-1 h-5" />
+          {/* Event Type */}
+          <div className="flex items-center gap-2">
+            <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
+              Event Type
+            </span>
+            <div className="flex flex-wrap items-center gap-1">
+              {FORMAT_OPTIONS.map((f) => (
+                <FilterChip
+                  key={f}
+                  selected={selectedFormats.has(f)}
+                  onClick={() => toggleSet(setSelectedFormats, f)}
+                >
+                  {f}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
 
-          {FORMAT_OPTIONS.map((f) => (
-            <button
-              key={f}
-              onClick={() => toggleFormat(f)}
-              className={`rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
-                selectedFormats.has(f)
-                  ? "border-foreground/30 bg-accent font-medium"
-                  : "border-transparent"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+          {/* Date */}
+          <div className="flex items-center gap-2">
+            <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
+              Date
+            </span>
+            <div className="flex flex-wrap items-center gap-1">
+              {DATE_RANGE_OPTIONS.map((opt) => (
+                <FilterChip
+                  key={opt.value}
+                  selected={dateRange === opt.value}
+                  onClick={() => setDateRange(opt.value)}
+                >
+                  {opt.label}
+                </FilterChip>
+              ))}
+            </div>
+          </div>
 
-          <Separator orientation="vertical" className="mx-1 h-5" />
-
-          {DATE_RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setDateRange(opt.value)}
-              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors hover:bg-accent ${
-                dateRange === opt.value
-                  ? "border-foreground/30 bg-accent font-medium"
-                  : "border-transparent"
-              }`}
-            >
-              {opt.value !== "all" && (
-                <CalendarDays className="h-3 w-3" />
-              )}
-              {opt.label}
-            </button>
-          ))}
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="ml-1 h-7 text-xs text-muted-foreground"
-            >
-              <X className="mr-1 h-3 w-3" />
-              Clear
-            </Button>
+          {/* City */}
+          {cityOptions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-xs font-medium text-muted-foreground">
+                City
+              </span>
+              <div className="flex flex-wrap items-center gap-1">
+                {cityOptions.map((city) => (
+                  <FilterChip
+                    key={city}
+                    selected={selectedCities.has(city)}
+                    onClick={() => toggleSet(setSelectedCities, city)}
+                  >
+                    {city}
+                  </FilterChip>
+                ))}
+              </div>
+            </div>
           )}
         </div>
+
+        {/* Clear */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-7 text-xs text-muted-foreground"
+          >
+            <X className="mr-1 h-3 w-3" />
+            Clear all filters
+          </Button>
+        )}
       </div>
 
       {/* Event list */}
