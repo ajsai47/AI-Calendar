@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   isToday,
   isTomorrow,
@@ -62,6 +62,7 @@ const FORMAT_OPTIONS = [
 ] as const;
 
 export function EventList({ events, communities }: EventListProps) {
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCommunities, setSelectedCommunities] = useState<Set<string>>(
     new Set(),
@@ -69,6 +70,8 @@ export function EventList({ events, communities }: EventListProps) {
   const [selectedFormats, setSelectedFormats] = useState<Set<string>>(
     new Set(),
   );
+
+  useEffect(() => setMounted(true), []);
 
   const communityMap = useMemo(() => {
     const map = new Map<string, Community>();
@@ -108,9 +111,14 @@ export function EventList({ events, communities }: EventListProps) {
     );
   }, [events, search, selectedCommunities, selectedFormats]);
 
+  // Defer date grouping to client to avoid hydration mismatch
+  // (server runs in UTC, client in local timezone — isToday/isTomorrow differ)
   const groups = useMemo(
-    () => groupEventsByDate(filteredEvents),
-    [filteredEvents],
+    () =>
+      mounted
+        ? groupEventsByDate(filteredEvents)
+        : [{ label: "Upcoming", events: filteredEvents }],
+    [filteredEvents, mounted],
   );
 
   const hasActiveFilters =
@@ -224,7 +232,7 @@ export function EventList({ events, communities }: EventListProps) {
         <div className="space-y-8">
           {groups.map((group) => (
             <section key={group.label}>
-              <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-muted-foreground" suppressHydrationWarning>
                 {group.label}
               </h2>
               <Separator className="mb-2" />

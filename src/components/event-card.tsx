@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useState } from "react";
 import { format } from "date-fns";
 import { MapPin, ExternalLink, Clock, Calendar } from "lucide-react";
 import {
@@ -17,6 +20,7 @@ interface EventCardProps {
 }
 
 export function EventCard({ event, community }: EventCardProps) {
+  const [imgError, setImgError] = useState(false);
   const startDate = new Date(event.startAt);
   const endDate = event.endAt ? new Date(event.endAt) : null;
 
@@ -45,13 +49,14 @@ export function EventCard({ event, community }: EventCardProps) {
           <article className="flex gap-4 py-4 sm:gap-6">
             {/* Image */}
             <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-32 sm:w-40">
-              {event.imageUrl ? (
+              {event.imageUrl && !imgError ? (
                 <Image
                   src={event.imageUrl}
                   alt={event.title}
                   fill
                   className="object-cover transition-transform duration-200 group-hover:scale-105"
                   sizes="(max-width: 640px) 96px, 160px"
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground">
@@ -78,8 +83,8 @@ export function EventCard({ event, community }: EventCardProps) {
                 {event.title}
               </h3>
 
-              {/* Time */}
-              <p className="text-sm text-muted-foreground">
+              {/* Time — suppressHydrationWarning: server (UTC) and client (local TZ) may format differently */}
+              <p className="text-sm text-muted-foreground" suppressHydrationWarning>
                 {format(startDate, "EEE, MMM d")} &middot; {timeString}
               </p>
 

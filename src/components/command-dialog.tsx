@@ -34,21 +34,25 @@ export function EventSearchDialog({ events }: EventSearchDialogProps) {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  // Group events by week
-  const thisWeekEvents: Event[] = [];
-  const laterEvents: Event[] = [];
-  const now = new Date();
-  const weekEnd = new Date(now);
-  weekEnd.setDate(weekEnd.getDate() + 7);
+  // Group events by week — computed inside useMemo to avoid
+  // hydration mismatch (server UTC vs client local timezone)
+  const { thisWeekEvents, laterEvents } = React.useMemo(() => {
+    const thisWeek: Event[] = [];
+    const later: Event[] = [];
+    const now = new Date();
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() + 7);
 
-  for (const event of events) {
-    const d = new Date(event.startAt);
-    if (d <= weekEnd) {
-      thisWeekEvents.push(event);
-    } else {
-      laterEvents.push(event);
+    for (const event of events) {
+      const d = new Date(event.startAt);
+      if (d <= weekEnd) {
+        thisWeek.push(event);
+      } else {
+        later.push(event);
+      }
     }
-  }
+    return { thisWeekEvents: thisWeek, laterEvents: later };
+  }, [events]);
 
   return (
     <>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { icon } from "leaflet";
 import { format } from "date-fns";
@@ -20,6 +21,11 @@ const defaultIcon = icon({
   shadowSize: [41, 41],
 });
 
+const TILE_URLS = {
+  dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+  light: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+};
+
 interface EventMapProps {
   events: Event[];
 }
@@ -29,6 +35,7 @@ const PDX_CENTER: [number, number] = [45.5152, -122.6784];
 
 export function EventMap({ events }: EventMapProps) {
   const [mounted, setMounted] = useState(false);
+  const { resolvedTheme } = useTheme();
 
   // react-leaflet requires client-side only rendering
   useEffect(() => {
@@ -39,6 +46,8 @@ export function EventMap({ events }: EventMapProps) {
     (e) => e.latitude != null && e.longitude != null,
   );
 
+  const isDark = resolvedTheme === "dark";
+
   if (!mounted) {
     return (
       <div className="flex h-full items-center justify-center bg-muted/30 text-sm text-muted-foreground">
@@ -48,7 +57,7 @@ export function EventMap({ events }: EventMapProps) {
   }
 
   return (
-    <div className="h-full w-full overflow-hidden rounded-lg border">
+    <div className={`h-full w-full overflow-hidden rounded-lg border ${isDark ? "leaflet-dark" : ""}`}>
       <MapContainer
         center={PDX_CENTER}
         zoom={11}
@@ -57,7 +66,7 @@ export function EventMap({ events }: EventMapProps) {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={isDark ? TILE_URLS.dark : TILE_URLS.light}
         />
         {mappableEvents.map((event) => (
           <Marker
